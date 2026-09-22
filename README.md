@@ -60,34 +60,40 @@ active) and one on `users/me/bugs`.
 
 ## Entities created
 
-| Entity | Description |
-|---|---|
-| `sensor.tryber_net_earnings` | Already paid out earnings (net) |
-| `sensor.tryber_gross_earnings` | Already paid out earnings (gross) |
-| `sensor.tryber_net_pending_earnings` | Accrued but not yet paid (net) |
-| `sensor.tryber_gross_pending_earnings` | Accrued but not yet paid (gross) |
-| `sensor.tryber_payout_threshold` | Minimum threshold to request payout |
-| `sensor.tryber_experience_points` | Total experience points |
-| `sensor.tryber_approved_bugs` | Approved bugs |
-| `sensor.tryber_attended_campaigns` | Campaigns you took part in |
-| `sensor.tryber_ranking_position` | Position in the monthly ranking |
-| `sensor.tryber_monthly_level` | Current level (Bronze, Gold...) |
-| `sensor.tryber_monthly_points` | Points for the current month |
-| `sensor.tryber_points_to_next_level` | Points missing to the next level |
-| `sensor.tryber_available_campaigns` | Campaigns you can apply to |
-| `sensor.tryber_accepted_campaigns` | Campaigns you've been selected for |
-| `sensor.tryber_active_campaigns` | Campaigns you're selected for that are still running |
-| `sensor.tryber_latest_available_campaign` | Name of the most recent applicable one |
-| `binary_sensor.tryber_payout_threshold_reached` | `on` when you can cash out |
-| `binary_sensor.tryber_bug_info_requested` | `on` when at least one of your bugs needs more info |
+Home Assistant builds the entity IDs from the device name and the entity name,
+following **Settings > System > Entity ID format**. With the default format and
+the default device name `Tryber First Last` you get
+`sensor.tryber_first_last_net_earnings`; rename the device to `Tryber` if you
+prefer the shorter `sensor.tryber_net_earnings`.
 
-> The entity IDs shown are the ones generated with the device named `Tryber`.
-> The integration uses `has_entity_name` and short entity names, so it follows
-> the **Settings > System > Entity ID format** setting: if you include the
-> area, you'll get e.g. `sensor.studio_tryber_net_earnings`.
+| Entity | Entity ID suffix | Description |
+|---|---|---|
+| Net earnings | `net_earnings` | Already paid out earnings (net) |
+| Gross earnings | `gross_earnings` | Already paid out earnings (gross) |
+| Net pending earnings | `net_pending_earnings` | Accrued but not yet paid (net) |
+| Gross pending earnings | `gross_pending_earnings` | Accrued but not yet paid (gross) |
+| Payout threshold | `payout_threshold` | Minimum threshold to request payout |
+| Experience points | `experience_points` | Total experience points |
+| Approved bugs | `approved_bugs` | Approved bugs |
+| Attended campaigns | `attended_campaigns` | Campaigns you took part in |
+| Ranking position | `ranking_position` | Position in the monthly ranking |
+| Monthly level | `monthly_level` | Current level (Bronze, Gold...) |
+| Monthly points | `monthly_points` | Points for the current month |
+| Points to next level | `points_to_next_level` | Points missing to the next level |
+| Available campaigns | `available_campaigns` | Campaigns you can apply to |
+| Accepted campaigns | `accepted_campaigns` | Campaigns you've been selected for |
+| Active campaigns | `active_campaigns` | Campaigns you're selected for that are still running |
+| Latest available campaign | `latest_available_campaign` | Name of the most recent applicable one |
+| Payout threshold reached | `payout_threshold_reached` | `binary_sensor`, `on` when you can cash out |
+| Bug info requested | `bug_info_requested` | `binary_sensor`, `on` when at least one of your bugs needs more info |
+
+> Changing the entity ID format only affects newly created entities: the ones
+> you already have keep their current ID.
 > Entity names are in English and are not translated.
 
 ## Automation example
+
+The examples below use the short entity IDs: replace them with yours.
 
 ```yaml
 automation:
