@@ -52,8 +52,11 @@ DATA_USER: Final = "user"
 DATA_RANK: Final = "rank"
 DATA_CAMPAIGNS_AVAILABLE: Final = "campaigns_available"
 DATA_CAMPAIGNS_ACCEPTED: Final = "campaigns_accepted"
+DATA_CAMPAIGNS_ACTIVE: Final = "campaigns_active"
 DATA_AVAILABLE_LIST: Final = "available_list"
+DATA_ACTIVE_LIST: Final = "active_list"
 DATA_NEW_CAMPAIGNS: Final = "new_campaigns"
+DATA_NEW_SELECTIONS: Final = "new_selections"
 DATA_BUGS_NEED_REVIEW: Final = "bugs_need_review"
 DATA_BUGS_NEED_REVIEW_COUNT: Final = "bugs_need_review_count"
 
@@ -80,6 +83,9 @@ BUGS_PAGE_SIZE: Final = 50
 # Evento sparato sul bus di HA quando compare una campagna candidabile.
 EVENT_NEW_CAMPAIGN: Final = "tryber_new_campaign"
 
+# Evento sparato quando vieni selezionato per una campagna.
+EVENT_CAMPAIGN_SELECTED: Final = "tryber_campaign_selected"
+
 # Solo le campagne con questo visibility.type sono candidabili.
 VISIBILITY_AVAILABLE: Final = "available"
 
@@ -95,12 +101,24 @@ CAMPAIGNS_MAX_PAGES: Final = 5
 # /users/me/campaigns restituisce TUTTO lo storico (oltre 1400 campagne dal 2018)
 # ordinato dalla piu' vecchia. Senza questi filtri le campagne aperte finiscono
 # in fondo e non vengono mai raggiunte.
-#   filterBy[statusID]=1  -> solo campagne aperte
+#   filterBy[statusId]=1  -> solo campagne aperte (l'API legge "statusId", non
+#                            "statusID": con la grafia sbagliata il filtro viene
+#                            ignorato senza errore)
 #   filterBy[completed]=0 -> data di fine da oggi in avanti
 #   orderBy=close_date DESC -> le piu' recenti per prime, come ulteriore garanzia
 CAMPAIGNS_QUERY: Final = {
-    "filterBy[statusID]": 1,
+    "filterBy[statusId]": 1,
     "filterBy[completed]": 0,
     "orderBy": "close_date",
+    "order": "DESC",
+}
+
+# Campagne in cui sei stato selezionato e che non si sono ancora concluse.
+#   filterBy[accepted]=1  -> solo le candidature accettate
+#   filterBy[completed]=0 -> esclude quelle gia' finite
+ACCEPTED_CAMPAIGNS_QUERY: Final = {
+    "filterBy[accepted]": 1,
+    "filterBy[completed]": 0,
+    "orderBy": "start_date",
     "order": "DESC",
 }

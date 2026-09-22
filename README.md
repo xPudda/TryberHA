@@ -41,9 +41,9 @@ campaigns as sensors, and notifies you when a new applicable campaign appears.
 
 ## Polling
 
-Every **2 minutes**, with 5 parallel calls:
-`users/me` (selected fields), `users/me/rank`, two counts on
-`users/me/campaigns` and `users/me/bugs`.
+Every **2 minutes**, with 6 parallel calls: `users/me` (selected fields),
+`users/me/rank`, three queries on `users/me/campaigns` (applicable, accepted,
+active) and one on `users/me/bugs`.
 
 ## Entities created
 
@@ -63,6 +63,7 @@ Every **2 minutes**, with 5 parallel calls:
 | `sensor.tryber_points_to_next_level` | Points missing to the next level |
 | `sensor.tryber_available_campaigns` | Campaigns you can apply to |
 | `sensor.tryber_accepted_campaigns` | Campaigns you've been selected for |
+| `sensor.tryber_active_campaigns` | Campaigns you're selected for that are still running |
 | `sensor.tryber_latest_available_campaign` | Name of the most recent applicable one |
 | `binary_sensor.tryber_payout_threshold_reached` | `on` when you can cash out |
 | `binary_sensor.tryber_bug_info_requested` | `on` when at least one of your bugs needs more info |
@@ -187,6 +188,48 @@ To list them all in a Markdown card:
 - **{{ c.name }}** ({{ c.free_spots }}/{{ c.total_spots }} spots)
 {% endfor %}
 ```
+
+## Notification when you get selected for a campaign
+
+The integration also queries `/users/me/campaigns` with `filterBy[accepted]=1`,
+which returns only the campaigns your application was **accepted** for, and
+keeps those that haven't ended yet.
+
+When a campaign id shows up there for the first time, the
+**`tryber_campaign_selected`** event is fired on the bus with this data:
+
+| Field | Content |
+|---|---|
+| `id` | Campaign id |
+| `name` | Campaign name |
+| `start_date` / `end_date` | Campaign dates |
+| `close_date` | Application deadline |
+| `campaign_type` | Campaign type (e.g. Functional, Experience) |
+
+Like new campaigns, selections are **persisted to disk** and the very first
+startup only records the starting state without notifying anything.
+
+```yaml
+automation:
+  - alias: "Tryber - selected for a campaign"
+    triggers:
+      - trigger: event
+        event_type: tryber_campaign_selected
+    actions:
+      - action: notify.mobile_app_iphone_16
+        data:
+          title: "You're in!"
+          message: >-
+            Selected for {{ trigger.event.data.name }}
+            {% if trigger.event.data.end_date %}
+            (until {{ trigger.event.data.end_date }})
+            {% endif %}
+          data:
+            url: "https://app.tryber.me/campaigns/{{ trigger.event.data.id }}"
+```
+
+The full list of campaigns you're currently working on is in the `campaigns`
+attribute of `sensor.tryber_active_campaigns`.
 
 ## Bugs waiting for more info
 

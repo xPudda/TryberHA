@@ -17,8 +17,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import TryberConfigEntry
 from .const import (
+    DATA_ACTIVE_LIST,
     DATA_AVAILABLE_LIST,
     DATA_CAMPAIGNS_ACCEPTED,
+    DATA_CAMPAIGNS_ACTIVE,
     DATA_CAMPAIGNS_AVAILABLE,
     DATA_RANK,
     DATA_USER,
@@ -199,6 +201,14 @@ SENSORS: tuple[TryberSensorDescription, ...] = (
         icon="mdi:account-check",
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda d: d.get(DATA_CAMPAIGNS_ACCEPTED),
+    ),
+    TryberSensorDescription(
+        key="campaigns_active",
+        name="Active campaigns",
+        icon="mdi:play-circle-outline",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.get(DATA_CAMPAIGNS_ACTIVE),
+        attrs_fn=lambda d: {"campaigns": d.get(DATA_ACTIVE_LIST) or []},
     ),
 )
 

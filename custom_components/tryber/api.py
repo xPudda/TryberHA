@@ -15,6 +15,7 @@ from typing import Any
 import aiohttp
 
 from .const import (
+    ACCEPTED_CAMPAIGNS_QUERY,
     BASE_URL,
     BUGS_NEED_REVIEW_QUERY,
     BUGS_PAGE_SIZE,
@@ -196,6 +197,7 @@ class TryberClient:
         data = await self._async_get(
             "users/me/campaigns",
             {"limit": 1, "start": 0, "filterBy[accepted]": 1},
+            empty_on_404=True,
         )
         if not isinstance(data, dict):
             return 0
@@ -221,6 +223,7 @@ class TryberClient:
             data = await self._async_get(
                 "users/me/campaigns",
                 {**CAMPAIGNS_QUERY, "limit": CAMPAIGNS_PAGE_SIZE, "start": start},
+                empty_on_404=True,
             )
             if not isinstance(data, dict):
                 break
@@ -255,6 +258,40 @@ class TryberClient:
             # Ci fermiamo quando abbiamo scaricato tutto o l'API non pagina.
             if total is None or start >= int(total):
                 break
+
+        return campaigns
+
+    async def async_get_active_campaigns(self) -> list[dict[str, Any]]:
+        """Campagne in cui sei stato selezionato e che non sono ancora finite.
+
+        Con filterBy[accepted]=1 l'API restituisce solo le candidature
+        accettate, quindi l'elenco corrisponde alle campagne che stai
+        effettivamente svolgendo. Una pagina basta: sono al massimo qualche
+        decina. Nessun risultato significa 404, non lista vuota.
+        """
+        data = await self._async_get(
+            "users/me/campaigns",
+            {**ACCEPTED_CAMPAIGNS_QUERY, "limit": CAMPAIGNS_PAGE_SIZE, "start": 0},
+            empty_on_404=True,
+        )
+        if not isinstance(data, dict):
+            return []
+
+        campaigns: list[dict[str, Any]] = []
+        for item in data.get("results") or []:
+            if not isinstance(item, dict):
+                continue
+            dates = item.get("dates") or {}
+            campaigns.append(
+                {
+                    "id": item.get("id"),
+                    "name": item.get("name"),
+                    "start_date": dates.get("start"),
+                    "end_date": dates.get("end"),
+                    "close_date": dates.get("close"),
+                    "campaign_type": item.get("campaign_type"),
+                }
+            )
 
         return campaigns
 
