@@ -75,6 +75,17 @@ class TryberClient:
             return False
         return datetime.now(timezone.utc) < self._token_expires - TOKEN_EXPIRY_MARGIN
 
+    def _redacted(self, text: str) -> str:
+        """Toglie la password dal testo di una risposta.
+
+        Quando le credenziali sono sbagliate l'API rimanda indietro la
+        password in chiaro nel messaggio di errore ("Password xxx not matching
+        utente"): senza questa pulizia finirebbe nei log di Home Assistant.
+        """
+        if not self._password:
+            return text
+        return text.replace(self._password, "***")
+
     async def async_login(self) -> None:
         """Ottiene un nuovo bearer token da POST /authenticate."""
         payload = {"username": self._username, "password": self._password}
@@ -96,7 +107,9 @@ class TryberClient:
             # Il 403 HTML arriva dal WAF, il 401 JSON dall'applicazione.
             raise TryberAuthError("Credenziali rifiutate dall'API Tryber")
         if response.status != 200:
-            raise TryberError(f"Login fallito (HTTP {response.status}): {text[:200]}")
+            raise TryberError(
+                f"Login fallito (HTTP {response.status}): {self._redacted(text)[:200]}"
+            )
 
         try:
             data = await response.json(content_type=None)

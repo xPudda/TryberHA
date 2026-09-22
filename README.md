@@ -39,6 +39,19 @@ campaigns as sensors, and notifies you when a new applicable campaign appears.
   on a `401` mid-refresh
 - If the password changes, HA starts the **re-authentication** flow
 
+## Credentials
+
+Your password is needed at every token renewal, so Home Assistant keeps it in
+the config entry, **unencrypted**, in `/config/.storage/core.config_entries` —
+as it does for every integration. Anyone who can read that folder, or an
+unencrypted backup of it, can read the password.
+
+Recommended:
+
+- Use a **password unique to Tryber**
+- Keep Home Assistant **backups encrypted**
+- Restrict access to the configuration folder
+
 ## Polling
 
 Every **2 minutes**, with 6 parallel calls: `users/me` (selected fields),
