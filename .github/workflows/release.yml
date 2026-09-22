@@ -73,7 +73,7 @@ jobs:
                 GROUPED[$type]+="- $desc"$'\n'
               fi
             fi
-          done < <(git log "$RANGE" --no-merges --pretty=format:'%h %s')
+          done < <(git log "$RANGE" --no-merges --pretty=format:'%h %s'; echo)
 
           {
             for type in feat fix perf; do
