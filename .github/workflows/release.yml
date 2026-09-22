@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Leggi la versione dal manifest
         id: version
@@ -31,10 +33,76 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Trova il tag della release precedente
+        if: steps.check_tag.outputs.exists == 'false'
+        id: prev_tag
+        run: |
+          PREV=$(git tag --sort=-v:refname | grep -v "^${{ steps.version.outputs.version }}$" | head -n1 || true)
+          echo "tag=$PREV" >> "$GITHUB_OUTPUT"
+
+      - name: Genera le release notes dai Conventional Commits
+        if: steps.check_tag.outputs.exists == 'false'
+        id: notes
+        run: |
+          PREV_TAG="${{ steps.prev_tag.outputs.tag }}"
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="$PREV_TAG..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+
+          declare -A TITLES=(
+            [feat]="Novita'"
+            [fix]="Correzioni"
+            [perf]="Prestazioni"
+            [refactor]="Refactoring"
+            [docs]="Documentazione"
+            [test]="Test"
+            [build]="Build"
+            [ci]="CI"
+            [chore]="Manutenzione"
+            [revert]="Revert"
+          )
+          declare -A GROUPED
+          OTHER=""
+
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            hash="${line%% *}"
+            subject="${line#* }"
+            if [[ "$subject" =~ ^([a-z]+)(\(.+\))?!?:\ (.+)$ ]]; then
+              type="${BASH_REMATCH[1]}"
+              desc="${BASH_REMATCH[3]}"
+              if [[ -n "${TITLES[$type]:-}" ]]; then
+                GROUPED[$type]+="- $desc ($hash)"$'\n'
+                continue
+              fi
+            fi
+            OTHER+="- $subject ($hash)"$'\n'
+          done < <(git log "$RANGE" --no-merges --pretty=format:'%h %s')
+
+          {
+            for type in feat fix perf refactor docs test build ci chore revert; do
+              if [ -n "${GROUPED[$type]:-}" ]; then
+                echo "### ${TITLES[$type]}"
+                echo
+                printf '%s\n' "${GROUPED[$type]}"
+              fi
+            done
+            if [ -n "$OTHER" ]; then
+              echo "### Altro"
+              echo
+              printf '%s\n' "$OTHER"
+            fi
+            if [ -n "$PREV_TAG" ]; then
+              echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREV_TAG...${{ steps.version.outputs.version }}"
+            fi
+          } > release_notes.md
+
       - name: Crea tag e release
         if: steps.check_tag.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.version }}
-          generate_release_notes: true
+          body_path: release_notes.md
