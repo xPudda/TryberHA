@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Tryber",
+        "description": "Enter your Tryber tester account credentials.",
+        "data": {
+          "username": "Username or email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Authentication expired",
+        "description": "Re-enter the password for account {username}.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid credentials.",
+      "cannot_connect": "Cannot reach the Tryber API.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This Tryber account is already configured.",
+      "reauth_successful": "Authentication updated."
+    }
+  }
+}
