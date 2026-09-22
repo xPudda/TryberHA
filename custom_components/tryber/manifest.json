@@ -1,7 +1,7 @@
 {
   "domain": "tryber",
   "name": "Tryber",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "documentation": "https://github.com/xPudda/TryberHA",
   "issue_tracker": "https://github.com/xPudda/TryberHA/issues",
   "codeowners": [

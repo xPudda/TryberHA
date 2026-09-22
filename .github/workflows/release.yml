@@ -51,20 +51,14 @@ jobs:
             RANGE="HEAD"
           fi
 
+          # Solo i tipi rilevanti per chi usa l'integrazione: il resto
+          # (chore, ci, build, test, refactor, docs...) e' rumore interno.
           declare -A TITLES=(
-            [feat]="Novita'"
-            [fix]="Correzioni"
-            [perf]="Prestazioni"
-            [refactor]="Refactoring"
-            [docs]="Documentazione"
-            [test]="Test"
-            [build]="Build"
-            [ci]="CI"
-            [chore]="Manutenzione"
-            [revert]="Revert"
+            [feat]="✨ New features"
+            [fix]="🐛 Bug fixes"
+            [perf]="⚡ Improvements"
           )
           declare -A GROUPED
-          OTHER=""
 
           while IFS= read -r line; do
             [ -z "$line" ] && continue
@@ -74,30 +68,26 @@ jobs:
               type="${BASH_REMATCH[1]}"
               desc="${BASH_REMATCH[3]}"
               if [[ -n "${TITLES[$type]:-}" ]]; then
-                GROUPED[$type]+="- $desc ($hash)"$'\n'
-                continue
+                # Prima lettera maiuscola, per una nota leggibile.
+                desc="$(tr '[:lower:]' '[:upper:]' <<< "${desc:0:1}")${desc:1}"
+                GROUPED[$type]+="- $desc"$'\n'
               fi
             fi
-            OTHER+="- $subject ($hash)"$'\n'
           done < <(git log "$RANGE" --no-merges --pretty=format:'%h %s')
 
           {
-            for type in feat fix perf refactor docs test build ci chore revert; do
+            for type in feat fix perf; do
               if [ -n "${GROUPED[$type]:-}" ]; then
                 echo "### ${TITLES[$type]}"
                 echo
                 printf '%s\n' "${GROUPED[$type]}"
               fi
             done
-            if [ -n "$OTHER" ]; then
-              echo "### Altro"
-              echo
-              printf '%s\n' "$OTHER"
-            fi
-            if [ -n "$PREV_TAG" ]; then
-              echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREV_TAG...${{ steps.version.outputs.version }}"
-            fi
           } > release_notes.md
+
+          if [ ! -s release_notes.md ]; then
+            echo "Minor internal changes, nothing new to report for users." > release_notes.md
+          fi
 
       - name: Crea tag e release
         if: steps.check_tag.outputs.exists == 'false'
