@@ -1,4 +1,4 @@
-"""Config flow: setup da UI con username e password."""
+"""Config flow: UI setup with username and password."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ STEP_USER_SCHEMA = vol.Schema(
 
 
 class TryberConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Gestisce l'aggiunta e la ri-autenticazione dell'account Tryber."""
+    """Handles adding and re-authenticating the Tryber account."""
 
     VERSION = 1
 
@@ -33,7 +33,7 @@ class TryberConfigFlow(ConfigFlow, domain=DOMAIN):
         self._reauth_entry_data: Mapping[str, Any] | None = None
 
     async def _async_validate(self, username: str, password: str) -> int | None:
-        """Prova il login; restituisce l'id tester o solleva un errore."""
+        """Try the login; returns the tester id or raises an error."""
         session = async_get_clientsession(self.hass)
         client = TryberClient(session, username, password)
         await client.async_login()
@@ -42,7 +42,7 @@ class TryberConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Primo step: credenziali."""
+        """First step: credentials."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -55,11 +55,11 @@ class TryberConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except TryberError:
                 errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001 - difesa contro errori imprevisti
-                _LOGGER.exception("Errore non gestito durante il login Tryber")
+            except Exception:  # noqa: BLE001 - guard against unexpected errors
+                _LOGGER.exception("Unhandled error during the Tryber login")
                 errors["base"] = "unknown"
             else:
-                # Un solo config entry per tester.
+                # One config entry per tester.
                 await self.async_set_unique_id(str(user_id))
                 self._abort_if_unique_id_configured()
 
@@ -75,14 +75,14 @@ class TryberConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_reauth(
         self, entry_data: Mapping[str, Any]
     ) -> ConfigFlowResult:
-        """Avviato quando il token non e' piu' rinnovabile (password cambiata)."""
+        """Started when the token can no longer be renewed (password changed)."""
         self._reauth_entry_data = entry_data
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Chiede di nuovo la password mantenendo lo stesso username."""
+        """Ask for the password again, keeping the same username."""
         errors: dict[str, str] = {}
         entry = self._get_reauth_entry()
         username = entry.data[CONF_USERNAME]

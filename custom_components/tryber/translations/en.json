@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Tryber",
-        "description": "Enter your Tryber tester account credentials.",
+        "description": "Enter the credentials of your Tryber tester account.",
         "data": {
           "username": "Username or email",
           "password": "Password"
@@ -25,6 +25,14 @@
     "abort": {
       "already_configured": "This Tryber account is already configured.",
       "reauth_successful": "Authentication updated."
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "The Tryber credentials are no longer valid: please sign in again."
+    },
+    "cannot_connect": {
+      "message": "Cannot reach the Tryber API: {error}"
     }
   }
 }

@@ -1,4 +1,4 @@
-"""Diagnostics: stato dell'integrazione senza credenziali ne' dati personali."""
+"""Diagnostics: integration state without credentials or personal data."""
 
 from __future__ import annotations
 
@@ -25,11 +25,11 @@ USER_TO_REDACT = {"name", "surname"}
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: TryberConfigEntry
 ) -> dict[str, Any]:
-    """Dati di debug scaricabili dalla UI.
+    """Debug data downloadable from the UI.
 
-    Il file finisce spesso allegato a una issue pubblica, quindi restano fuori
-    le credenziali, nome e cognome e i titoli delle campagne (che sono
-    informazioni riservate del cliente).
+    The file often ends up attached to a public issue, so credentials, first
+    and last name and campaign titles (confidential customer information) are
+    left out.
     """
     data = entry.runtime_data.data or {}
 

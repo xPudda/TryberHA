@@ -1,8 +1,8 @@
-"""Client per le API tester di Tryber.
+"""Client for the Tryber tester API.
 
-Gestisce l'autenticazione username/password, conserva il bearer token finche'
-non scade e lo rinnova in automatico. Usa solo endpoint dell'area utente
-(/users/me/...), nessun endpoint riservato allo staff.
+Handles username/password authentication, keeps the bearer token until it
+expires and renews it automatically. Only user-area endpoints are used
+(/users/me/...), never staff-only ones.
 """
 
 from __future__ import annotations
@@ -33,15 +33,15 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class TryberError(Exception):
-    """Errore generico di comunicazione con l'API."""
+    """Generic API communication error."""
 
 
 class TryberAuthError(TryberError):
-    """Credenziali rifiutate o token non piu' valido."""
+    """Credentials rejected or token no longer valid."""
 
 
 class TryberClient:
-    """Wrapper asincrono sulle API utente di Tryber."""
+    """Async wrapper around the Tryber user API."""
 
     def __init__(
         self,
@@ -56,38 +56,38 @@ class TryberClient:
         self._token: str | None = None
         self._token_expires: datetime | None = None
         self._user_id: int | None = None
-        # Evita che piu' aggiornamenti concorrenti facciano login in parallelo.
+        # Prevents concurrent updates from logging in at the same time.
         self._auth_lock = asyncio.Lock()
 
-    # --- proprieta' pubbliche ------------------------------------------------
+    # --- public properties ---------------------------------------------------
 
     @property
     def user_id(self) -> int | None:
-        """Id del tester autenticato, noto dopo il primo login."""
+        """Id of the authenticated tester, known after the first login."""
         return self._user_id
 
-    # --- autenticazione ------------------------------------------------------
+    # --- authentication ------------------------------------------------------
 
     @property
     def _token_valid(self) -> bool:
-        """True se il token in cache e' ancora spendibile (con margine)."""
+        """True while the cached token is still usable (with a margin)."""
         if not self._token or not self._token_expires:
             return False
         return datetime.now(timezone.utc) < self._token_expires - TOKEN_EXPIRY_MARGIN
 
     def _redacted(self, text: str) -> str:
-        """Toglie la password dal testo di una risposta.
+        """Strip the password from a response body.
 
-        Quando le credenziali sono sbagliate l'API rimanda indietro la
-        password in chiaro nel messaggio di errore ("Password xxx not matching
-        utente"): senza questa pulizia finirebbe nei log di Home Assistant.
+        On wrong credentials the API echoes the password back in clear text
+        inside the error message ("Password xxx not matching utente"): without
+        this cleanup it would end up in the Home Assistant logs.
         """
         if not self._password:
             return text
         return text.replace(self._password, "***")
 
     async def async_login(self) -> None:
-        """Ottiene un nuovo bearer token da POST /authenticate."""
+        """Get a new bearer token from POST /authenticate."""
         payload = {"username": self._username, "password": self._password}
 
         try:
@@ -99,31 +99,31 @@ class TryberClient:
                 )
                 text = await response.text()
         except asyncio.TimeoutError as err:
-            raise TryberError("Timeout durante l'autenticazione") from err
+            raise TryberError("Timeout while authenticating") from err
         except aiohttp.ClientError as err:
-            raise TryberError(f"Errore di rete durante l'autenticazione: {err}") from err
+            raise TryberError(f"Network error while authenticating: {err}") from err
 
         if response.status in (401, 403):
-            # Il 403 HTML arriva dal WAF, il 401 JSON dall'applicazione.
-            raise TryberAuthError("Credenziali rifiutate dall'API Tryber")
+            # The HTML 403 comes from the WAF, the JSON 401 from the app.
+            raise TryberAuthError("Credentials rejected by the Tryber API")
         if response.status != 200:
             raise TryberError(
-                f"Login fallito (HTTP {response.status}): {self._redacted(text)[:200]}"
+                f"Login failed (HTTP {response.status}): {self._redacted(text)[:200]}"
             )
 
         try:
             data = await response.json(content_type=None)
         except ValueError as err:
-            raise TryberError("Risposta di login non in formato JSON") from err
+            raise TryberError("Login response is not JSON") from err
 
         token = data.get("token")
         if not token:
-            raise TryberAuthError("Nessun token nella risposta di login")
+            raise TryberAuthError("No token in the login response")
 
         self._token = token
         self._user_id = data.get("id")
 
-        # "exp" e' un timestamp Unix; se manca, assumiamo la durata standard 24h.
+        # "exp" is a Unix timestamp; when missing we assume the standard 24h.
         exp = data.get("exp")
         if exp:
             self._token_expires = datetime.fromtimestamp(int(exp), tz=timezone.utc)
@@ -131,20 +131,20 @@ class TryberClient:
             self._token_expires = datetime.now(timezone.utc) + TOKEN_EXPIRY_MARGIN
 
         _LOGGER.debug(
-            "Login Tryber riuscito per id %s, token valido fino a %s",
+            "Tryber login succeeded for id %s, token valid until %s",
             self._user_id,
             self._token_expires,
         )
 
     async def _async_ensure_token(self) -> str:
-        """Restituisce un token valido, rinnovandolo se serve."""
+        """Return a valid token, renewing it when needed."""
         async with self._auth_lock:
             if not self._token_valid:
                 await self.async_login()
-            # A questo punto il token c'e' per costruzione.
+            # At this point the token exists by construction.
             return self._token  # type: ignore[return-value]
 
-    # --- richieste -----------------------------------------------------------
+    # --- requests ------------------------------------------------------------
 
     async def _async_get(
         self,
@@ -153,7 +153,7 @@ class TryberClient:
         *,
         empty_on_404: bool = False,
     ) -> Any:
-        """GET autenticata; su 401 rifa' il login una volta sola e riprova."""
+        """Authenticated GET; on 401 it logs in again once and retries."""
         for attempt in (1, 2):
             token = await self._async_ensure_token()
             headers = {**DEFAULT_HEADERS, "authorization": f"Bearer {token}"}
@@ -167,45 +167,45 @@ class TryberClient:
                     )
                     text = await response.text()
             except asyncio.TimeoutError as err:
-                raise TryberError(f"Timeout su {path}") from err
+                raise TryberError(f"Timeout on {path}") from err
             except aiohttp.ClientError as err:
-                raise TryberError(f"Errore di rete su {path}: {err}") from err
+                raise TryberError(f"Network error on {path}: {err}") from err
 
             if response.status == 401 and attempt == 1:
-                # Token scaduto prima del previsto: invalidiamo e riproviamo.
-                _LOGGER.debug("401 su %s, rinnovo il token", path)
+                # Token expired earlier than expected: drop it and retry.
+                _LOGGER.debug("401 on %s, renewing the token", path)
                 self._token = None
                 continue
 
             if response.status == 403:
-                raise TryberAuthError(f"Accesso negato su {path}")
+                raise TryberAuthError(f"Access denied on {path}")
             if response.status == 404 and empty_on_404:
                 return None
             if response.status != 200:
-                raise TryberError(f"HTTP {response.status} su {path}: {text[:200]}")
+                raise TryberError(f"HTTP {response.status} on {path}: {text[:200]}")
 
             try:
                 return await response.json(content_type=None)
             except ValueError as err:
-                raise TryberError(f"Risposta non JSON su {path}") from err
+                raise TryberError(f"Non-JSON response on {path}") from err
 
-        raise TryberAuthError(f"Autenticazione fallita su {path}")
+        raise TryberAuthError(f"Authentication failed on {path}")
 
-    # --- endpoint utilizzati -------------------------------------------------
+    # --- endpoints used ------------------------------------------------------
 
     async def async_get_user(self) -> dict[str, Any]:
-        """GET /users/me con i soli campi che servono ai sensori."""
+        """GET /users/me with only the fields the sensors need."""
         return await self._async_get("users/me", {"fields": USER_FIELDS})
 
     async def async_get_rank(self) -> dict[str, Any]:
-        """GET /users/me/rank: livello mensile, punti e posizione."""
+        """GET /users/me/rank: monthly level, points and position."""
         return await self._async_get("users/me/rank")
 
     async def async_count_accepted_campaigns(self) -> int:
-        """Conta le campagne in cui sei stato selezionato.
+        """Count the campaigns the tester has been selected for.
 
-        Chiediamo un solo elemento (limit=1): ci interessa il totale, non la
-        lista. Il filtro viaggia in stile qs -> filterBy[accepted]=1.
+        Only one item is requested (limit=1): what matters is the total, not
+        the list. The filter travels qs-style -> filterBy[accepted]=1.
         """
         data = await self._async_get(
             "users/me/campaigns",
@@ -220,14 +220,15 @@ class TryberClient:
         return int(total)
 
     async def async_get_available_campaigns(self) -> list[dict[str, Any]]:
-        """Elenco delle campagne a cui puoi effettivamente candidarti.
+        """List the campaigns the tester can actually apply to.
 
-        Scorre le pagine di /users/me/campaigns e tiene solo quelle con
-        visibility.type == "available": le altre sono gia' candidate
-        ("candidate") o non aperte a te ("unavailable").
+        Pages through /users/me/campaigns and keeps only the ones with
+        visibility.type == "available": the others are already applied to
+        ("candidate") or not open to this tester ("unavailable").
 
-        La query e' filtrata sulle sole campagne aperte e non concluse: senza
-        filtri l'endpoint restituisce l'intero storico (1400+ voci dal 2018).
+        The query is filtered to open, unfinished campaigns only: without
+        filters the endpoint returns the whole history (1400+ entries
+        since 2018).
         """
         campaigns: list[dict[str, Any]] = []
         start = 0
@@ -251,7 +252,7 @@ class TryberClient:
                 visibility = item.get("visibility") or {}
                 if visibility.get("type") != VISIBILITY_AVAILABLE:
                     continue
-                # Alcune campagne risultano available ma senza posti liberi.
+                # Some campaigns are available but have no free spots left.
                 free_spots = visibility.get("freeSpots")
                 campaigns.append(
                     {
@@ -268,19 +269,19 @@ class TryberClient:
 
             start += len(results)
             total = data.get("total")
-            # Ci fermiamo quando abbiamo scaricato tutto o l'API non pagina.
+            # Stop once everything is fetched or the API stops paginating.
             if total is None or start >= int(total):
                 break
 
         return campaigns
 
     async def async_get_active_campaigns(self) -> list[dict[str, Any]]:
-        """Campagne in cui sei stato selezionato e che non sono ancora finite.
+        """Campaigns the tester was selected for and that are still running.
 
-        Con filterBy[accepted]=1 l'API restituisce solo le candidature
-        accettate, quindi l'elenco corrisponde alle campagne che stai
-        effettivamente svolgendo. Una pagina basta: sono al massimo qualche
-        decina. Nessun risultato significa 404, non lista vuota.
+        With filterBy[accepted]=1 the API returns accepted applications only,
+        so the list matches the campaigns currently being worked on. A single
+        page is enough: there are a few dozen at most. No result means a 404,
+        not an empty list.
         """
         data = await self._async_get(
             "users/me/campaigns",
@@ -309,11 +310,11 @@ class TryberClient:
         return campaigns
 
     async def async_get_need_review_bugs(self) -> tuple[int, list[dict[str, Any]]]:
-        """Bug per cui il team ha chiesto altre informazioni al tester.
+        """Bugs for which the team asked the tester for more information.
 
-        Il filtro sullo stato esclude per costruzione i bug gia' approvati o
-        rifiutati. Quando nessun bug corrisponde, l'endpoint risponde 404
-        invece di una lista vuota: va letto come "nessun bug", non come errore.
+        The status filter excludes approved and refused bugs by construction.
+        When no bug matches, the endpoint answers 404 instead of an empty
+        list: that must be read as "no bugs", not as an error.
         """
         data = await self._async_get(
             "users/me/bugs",

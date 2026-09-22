@@ -1,4 +1,4 @@
-"""Binary sensor: utile per automazioni (es. notifica quando puoi incassare)."""
+"""Binary sensors: handy for automations (e.g. notify when you can cash out)."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ async def async_setup_entry(
     entry: TryberConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Crea i binary sensor."""
+    """Set up the binary sensors."""
     coordinator = entry.runtime_data
     async_add_entities(
         [
@@ -44,7 +44,7 @@ async def async_setup_entry(
 
 
 class TryberThresholdBinarySensor(TryberEntity, BinarySensorEntity):
-    """True quando i compensi maturati superano la soglia di pagamento."""
+    """True when the accrued earnings are above the payout threshold."""
 
     @property
     def is_on(self) -> bool | None:
@@ -58,10 +58,10 @@ class TryberThresholdBinarySensor(TryberEntity, BinarySensorEntity):
 
 
 class TryberNeedReviewBinarySensor(TryberEntity, BinarySensorEntity):
-    """True quando almeno un bug segnalato aspetta altre info da te.
+    """True when at least one reported bug is waiting for more info from you.
 
-    Sono i bug in stato "Need Review": ancora aperti, quindi ne' approvati
-    ne' rifiutati.
+    These are the bugs in "Need Review" state: still open, so neither approved
+    nor refused.
     """
 
     @property

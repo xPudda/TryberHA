@@ -26,5 +26,13 @@
       "already_configured": "Questo account Tryber e' gia' configurato.",
       "reauth_successful": "Autenticazione aggiornata."
     }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Le credenziali Tryber non sono piu' valide: effettua di nuovo l'accesso."
+    },
+    "cannot_connect": {
+      "message": "Impossibile contattare le API di Tryber: {error}"
+    }
   }
 }

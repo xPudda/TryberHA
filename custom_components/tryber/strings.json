@@ -3,28 +3,36 @@
     "step": {
       "user": {
         "title": "Tryber",
-        "description": "Inserisci le credenziali del tuo account tester Tryber.",
+        "description": "Enter the credentials of your Tryber tester account.",
         "data": {
-          "username": "Username o email",
+          "username": "Username or email",
           "password": "Password"
         }
       },
       "reauth_confirm": {
-        "title": "Autenticazione scaduta",
-        "description": "Reinserisci la password per l'account {username}.",
+        "title": "Authentication expired",
+        "description": "Re-enter the password for account {username}.",
         "data": {
           "password": "Password"
         }
       }
     },
     "error": {
-      "invalid_auth": "Credenziali non valide.",
-      "cannot_connect": "Impossibile contattare le API di Tryber.",
-      "unknown": "Errore imprevisto."
+      "invalid_auth": "Invalid credentials.",
+      "cannot_connect": "Cannot reach the Tryber API.",
+      "unknown": "Unexpected error."
     },
     "abort": {
-      "already_configured": "Questo account Tryber e' gia' configurato.",
-      "reauth_successful": "Autenticazione aggiornata."
+      "already_configured": "This Tryber account is already configured.",
+      "reauth_successful": "Authentication updated."
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "The Tryber credentials are no longer valid: please sign in again."
+    },
+    "cannot_connect": {
+      "message": "Cannot reach the Tryber API: {error}"
     }
   }
 }

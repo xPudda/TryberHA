@@ -1,4 +1,4 @@
-"""Integrazione Tryber per Home Assistant (area tester)."""
+"""Tryber integration for Home Assistant (tester area)."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ type TryberConfigEntry = ConfigEntry[TryberCoordinator]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: TryberConfigEntry) -> bool:
-    """Configura l'integrazione a partire dal config entry."""
+    """Set up the integration from a config entry."""
     session = async_get_clientsession(hass)
     client = TryberClient(
         session,
@@ -26,7 +26,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TryberConfigEntry) -> bo
     )
 
     coordinator = TryberCoordinator(hass, entry, client)
-    # Primo caricamento: se fallisce, HA mostra l'errore e ritenta.
+    # First refresh: on failure HA shows the error and retries.
     await coordinator.async_config_entry_first_refresh()
 
     entry.runtime_data = coordinator
@@ -38,7 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TryberConfigEntry) -> bo
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: TryberConfigEntry) -> bool:
-    """Rimuove l'integrazione."""
+    """Unload the integration."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
@@ -46,5 +46,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: TryberConfigEntry) -> b
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: TryberConfigEntry) -> None:
-    """Ricarica l'integrazione dopo un cambio di configurazione."""
+    """Reload the integration after a configuration change."""
     await hass.config_entries.async_reload(entry.entry_id)

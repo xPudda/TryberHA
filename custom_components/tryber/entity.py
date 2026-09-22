@@ -1,4 +1,4 @@
-"""Entita' base comune a sensori e binary sensor."""
+"""Base entity shared by sensors and binary sensors."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from .coordinator import TryberCoordinator
 
 
 class TryberEntity(CoordinatorEntity[TryberCoordinator]):
-    """Base: collega l'entita' al coordinator e al dispositivo dell'account."""
+    """Base: links the entity to the coordinator and to the account device."""
 
     _attr_has_entity_name = True
 
@@ -26,10 +26,10 @@ class TryberEntity(CoordinatorEntity[TryberCoordinator]):
         entry_id = coordinator.entry.entry_id
         self._attr_unique_id = f"{entry_id}_{description.key}"
 
-        # Nome del device volutamente breve e senza contesto: con il formato
-        # entity ID di HA (area + device + entity) un nome lungo genererebbe
-        # entity_id come sensor.tryber_nome_cognome_net_earnings.
-        # Risultato atteso: sensor.tryber_net_earnings
+        # The device name is deliberately short and context-free: with the HA
+        # entity ID format (area + device + entity) a long name would produce
+        # entity ids such as sensor.tryber_first_last_net_earnings.
+        # Expected result: sensor.tryber_net_earnings
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry_id)},
             name="Tryber",

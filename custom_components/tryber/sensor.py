@@ -1,4 +1,4 @@
-"""Sensori Tryber: guadagni, esperienza, ranking e campagne."""
+"""Tryber sensors: earnings, experience, ranking and campaigns."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ from .entity import TryberEntity
 
 
 def _nested(data: dict[str, Any], *keys: str) -> Any:
-    """Legge un valore annidato restituendo None se manca un livello."""
+    """Read a nested value, returning None when a level is missing."""
     current: Any = data
     for key in keys:
         if not isinstance(current, dict):
@@ -40,14 +40,14 @@ def _nested(data: dict[str, Any], *keys: str) -> Any:
 
 @dataclass(frozen=True, kw_only=True)
 class TryberSensorDescription(SensorEntityDescription):
-    """Descrizione di un sensore con la funzione che ne estrae il valore."""
+    """Sensor description plus the function that extracts its value."""
 
     value_fn: Callable[[dict[str, Any]], Any]
     attrs_fn: Callable[[dict[str, Any]], dict[str, Any]] | None = None
 
 
 SENSORS: tuple[TryberSensorDescription, ...] = (
-    # --- Guadagni gia' liquidati --------------------------------------------
+    # --- Earnings already paid out -------------------------------------------
     TryberSensorDescription(
         key="booty_net",
         name="Net earnings",
@@ -68,7 +68,7 @@ SENSORS: tuple[TryberSensorDescription, ...] = (
         suggested_display_precision=2,
         value_fn=lambda d: _nested(d[DATA_USER], "booty", "gross", "value"),
     ),
-    # --- Compensi maturati non ancora pagati --------------------------------
+    # --- Accrued earnings not paid out yet -----------------------------------
     TryberSensorDescription(
         key="pending_booty_net",
         name="Net pending earnings",
@@ -103,7 +103,7 @@ SENSORS: tuple[TryberSensorDescription, ...] = (
             )
         },
     ),
-    # --- Attivita' -----------------------------------------------------------
+    # --- Activity ------------------------------------------------------------
     TryberSensorDescription(
         key="total_exp_pts",
         name="Experience points",
@@ -126,7 +126,7 @@ SENSORS: tuple[TryberSensorDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         value_fn=lambda d: d[DATA_USER].get("attended_cp"),
     ),
-    # --- Ranking mensile -----------------------------------------------------
+    # --- Monthly ranking -----------------------------------------------------
     TryberSensorDescription(
         key="rank_position",
         name="Ranking position",
@@ -163,15 +163,15 @@ SENSORS: tuple[TryberSensorDescription, ...] = (
         native_unit_of_measurement="pts",
         value_fn=lambda d: _nested(d[DATA_RANK], "prospect", "next", "points"),
     ),
-    # --- Campagne ------------------------------------------------------------
+    # --- Campaigns -----------------------------------------------------------
     TryberSensorDescription(
         key="campaigns_available",
         name="Available campaigns",
         icon="mdi:bullhorn",
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda d: d.get(DATA_CAMPAIGNS_AVAILABLE),
-        # L'elenco completo finisce negli attributi: utile nei template e
-        # nelle notifiche, senza dover creare un'entita' per campagna.
+        # The full list goes into the attributes: handy in templates and
+        # notifications, without one entity per campaign.
         attrs_fn=lambda d: {"campaigns": d.get(DATA_AVAILABLE_LIST) or []},
     ),
     TryberSensorDescription(
@@ -218,7 +218,7 @@ async def async_setup_entry(
     entry: TryberConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Crea i sensori."""
+    """Set up the sensors."""
     coordinator = entry.runtime_data
     async_add_entities(
         TryberSensor(coordinator, description) for description in SENSORS
@@ -226,13 +226,13 @@ async def async_setup_entry(
 
 
 class TryberSensor(TryberEntity, SensorEntity):
-    """Un sensore alimentato dal coordinator."""
+    """A sensor fed by the coordinator."""
 
     entity_description: TryberSensorDescription
 
     @property
     def native_value(self) -> Any:
-        """Valore corrente estratto dai dati del coordinator."""
+        """Current value extracted from the coordinator data."""
         if not self.coordinator.data:
             return None
         try:
@@ -242,12 +242,12 @@ class TryberSensor(TryberEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Attributi aggiuntivi, se la descrizione ne prevede."""
+        """Extra attributes, when the description defines any."""
         if not self.coordinator.data or not self.entity_description.attrs_fn:
             return None
         try:
             attrs = self.entity_description.attrs_fn(self.coordinator.data)
         except (KeyError, TypeError):
             return None
-        # Nasconde le chiavi senza valore per non sporcare la UI.
+        # Hide the empty keys so the UI stays clean.
         return {k: v for k, v in attrs.items() if v is not None}
