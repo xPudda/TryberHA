@@ -41,9 +41,9 @@ campaigns as sensors, and notifies you when a new applicable campaign appears.
 
 ## Polling
 
-Every **2 minutes**, with 4 parallel calls:
-`users/me` (selected fields), `users/me/rank`, and two counts on
-`users/me/campaigns`.
+Every **2 minutes**, with 5 parallel calls:
+`users/me` (selected fields), `users/me/rank`, two counts on
+`users/me/campaigns` and `users/me/bugs`.
 
 ## Entities created
 
@@ -65,6 +65,7 @@ Every **2 minutes**, with 4 parallel calls:
 | `sensor.tryber_accepted_campaigns` | Campaigns you've been selected for |
 | `sensor.tryber_latest_available_campaign` | Name of the most recent applicable one |
 | `binary_sensor.tryber_payout_threshold_reached` | `on` when you can cash out |
+| `binary_sensor.tryber_bug_info_requested` | `on` when at least one of your bugs needs more info |
 
 > The entity IDs shown are the ones generated with the device named `Tryber`.
 > The integration uses `has_entity_name` and short entity names, so it follows
@@ -99,6 +100,19 @@ automation:
         data:
           message: >-
             There are {{ states('sensor.tryber_available_campaigns') }} campaigns available.
+
+  - alias: "Tryber - a bug needs more info"
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.tryber_bug_info_requested
+        to: "on"
+    actions:
+      - action: notify.mobile_app_iphone_16
+        data:
+          title: "Tryber"
+          message: >-
+            {{ state_attr('binary_sensor.tryber_bug_info_requested', 'count') }}
+            bug(s) waiting for more info from you.
 ```
 
 ## Notification when a new campaign appears
@@ -171,6 +185,24 @@ To list them all in a Markdown card:
 ```jinja
 {% for c in state_attr('sensor.tryber_available_campaigns', 'campaigns') %}
 - **{{ c.name }}** ({{ c.free_spots }}/{{ c.total_spots }} spots)
+{% endfor %}
+```
+
+## Bugs waiting for more info
+
+`binary_sensor.tryber_bug_info_requested` turns `on` when at least one bug you
+reported is in the **Need Review** status, i.e. still open (neither approved
+nor refused) and waiting for extra information from you.
+
+Attributes:
+
+- `count` - how many bugs are in that state
+- `bugs` - the list, each with `id`, `title`, `campaign`, `campaign_id` and
+  `severity`
+
+```jinja
+{% for b in state_attr('binary_sensor.tryber_bug_info_requested', 'bugs') %}
+- **{{ b.title }}** ({{ b.campaign }})
 {% endfor %}
 ```
 

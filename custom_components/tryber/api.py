@@ -16,6 +16,8 @@ import aiohttp
 
 from .const import (
     BASE_URL,
+    BUGS_NEED_REVIEW_QUERY,
+    BUGS_PAGE_SIZE,
     CAMPAIGNS_MAX_PAGES,
     CAMPAIGNS_PAGE_SIZE,
     CAMPAIGNS_QUERY,
@@ -130,7 +132,13 @@ class TryberClient:
 
     # --- richieste -----------------------------------------------------------
 
-    async def _async_get(self, path: str, params: dict[str, Any] | None = None) -> Any:
+    async def _async_get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        empty_on_404: bool = False,
+    ) -> Any:
         """GET autenticata; su 401 rifa' il login una volta sola e riprova."""
         for attempt in (1, 2):
             token = await self._async_ensure_token()
@@ -157,6 +165,8 @@ class TryberClient:
 
             if response.status == 403:
                 raise TryberAuthError(f"Accesso negato su {path}")
+            if response.status == 404 and empty_on_404:
+                return None
             if response.status != 200:
                 raise TryberError(f"HTTP {response.status} su {path}: {text[:200]}")
 
@@ -247,3 +257,37 @@ class TryberClient:
                 break
 
         return campaigns
+
+    async def async_get_need_review_bugs(self) -> tuple[int, list[dict[str, Any]]]:
+        """Bug per cui il team ha chiesto altre informazioni al tester.
+
+        Il filtro sullo stato esclude per costruzione i bug gia' approvati o
+        rifiutati. Quando nessun bug corrisponde, l'endpoint risponde 404
+        invece di una lista vuota: va letto come "nessun bug", non come errore.
+        """
+        data = await self._async_get(
+            "users/me/bugs",
+            {**BUGS_NEED_REVIEW_QUERY, "limit": BUGS_PAGE_SIZE, "start": 0},
+            empty_on_404=True,
+        )
+        if not isinstance(data, dict):
+            return 0, []
+
+        bugs: list[dict[str, Any]] = []
+        for item in data.get("results") or []:
+            if not isinstance(item, dict):
+                continue
+            campaign = item.get("campaign") or {}
+            bugs.append(
+                {
+                    "id": item.get("id"),
+                    "title": item.get("title"),
+                    "campaign_id": campaign.get("id"),
+                    "campaign": campaign.get("name"),
+                    "severity": (item.get("severity") or {}).get("name"),
+                }
+            )
+
+        total = data.get("total")
+        count = int(total) if total is not None else len(bugs)
+        return count, bugs

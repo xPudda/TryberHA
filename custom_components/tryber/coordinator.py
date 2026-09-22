@@ -15,6 +15,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .api import TryberAuthError, TryberClient, TryberError
 from .const import (
     DATA_AVAILABLE_LIST,
+    DATA_BUGS_NEED_REVIEW,
+    DATA_BUGS_NEED_REVIEW_COUNT,
     DATA_CAMPAIGNS_ACCEPTED,
     DATA_CAMPAIGNS_AVAILABLE,
     DATA_NEW_CAMPAIGNS,
@@ -109,11 +111,12 @@ class TryberCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self._async_load_seen()
 
         try:
-            user, rank, available, accepted = await asyncio.gather(
+            user, rank, available, accepted, need_review = await asyncio.gather(
                 self.client.async_get_user(),
                 self.client.async_get_rank(),
                 self.client.async_get_available_campaigns(),
                 self.client.async_count_accepted_campaigns(),
+                self.client.async_get_need_review_bugs(),
             )
         except TryberAuthError as err:
             # Fa ripartire il flusso di ri-autenticazione in HA.
@@ -126,6 +129,8 @@ class TryberCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._fire_events(new_campaigns)
         await self._async_save_seen()
 
+        need_review_count, need_review_bugs = need_review
+
         return {
             DATA_USER: user or {},
             DATA_RANK: rank or {},
@@ -133,4 +138,6 @@ class TryberCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             DATA_CAMPAIGNS_AVAILABLE: len(available),
             DATA_CAMPAIGNS_ACCEPTED: accepted,
             DATA_NEW_CAMPAIGNS: new_campaigns,
+            DATA_BUGS_NEED_REVIEW: need_review_bugs,
+            DATA_BUGS_NEED_REVIEW_COUNT: need_review_count,
         }

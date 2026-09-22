@@ -54,6 +54,26 @@ DATA_CAMPAIGNS_AVAILABLE: Final = "campaigns_available"
 DATA_CAMPAIGNS_ACCEPTED: Final = "campaigns_accepted"
 DATA_AVAILABLE_LIST: Final = "available_list"
 DATA_NEW_CAMPAIGNS: Final = "new_campaigns"
+DATA_BUGS_NEED_REVIEW: Final = "bugs_need_review"
+DATA_BUGS_NEED_REVIEW_COUNT: Final = "bugs_need_review_count"
+
+# --- Bug in attesa di informazioni -------------------------------------------
+
+# Stati in wp_appq_evd_bug_status: 1 Refused, 2 Approved, 3 Pending,
+# 4 Need Review. Il 4 e' l'unico in cui la palla torna al tester: il bug non e'
+# ne' approvato ne' rifiutato e il team chiede altre informazioni.
+BUG_STATUS_NEED_REVIEW: Final = 4
+
+# /users/me/bugs confronta filterBy[status] sia con l'id sia con il nome dello
+# stato, quindi l'id basta e non dipende dalla lingua dell'etichetta.
+BUGS_NEED_REVIEW_QUERY: Final = {
+    "filterBy[status]": BUG_STATUS_NEED_REVIEW,
+    "orderBy": "id",
+    "order": "DESC",
+}
+
+# Quanti bug elencare negli attributi; il conteggio arriva comunque da "total".
+BUGS_PAGE_SIZE: Final = 50
 
 # --- Rilevamento nuove campagne ----------------------------------------------
 
