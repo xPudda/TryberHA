@@ -284,6 +284,9 @@ copyright notice.
 **Unofficial** project, not affiliated with nor supported by AppQuality / Tryber.
 It only uses user-area endpoints with your own personal credentials.
 Mentioned trademarks belong to their respective owners.
+The Tryber logo in [`custom_components/tryber/brand`](./custom_components/tryber/brand)
+is © AppQuality, used only to identify the integration in the Home Assistant UI;
+it is **not** covered by this repository's MIT license.
 
 ## License
 
